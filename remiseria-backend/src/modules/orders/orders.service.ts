@@ -1,11 +1,11 @@
 import { randomBytes } from "crypto";
-import { EstadoChofer, EstadoPedido } from "@prisma/client";
+import { EstadoChofer, EstadoPedido, Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { OrdersRepository } from "./orders.repository";
 import { toOrderDto, toOrderDetailDto } from "./orders.mappers";
 import { getIO } from "../../lib/socket";
 import { NotFoundError, AppError, ForbiddenError } from "../../lib/errors";
-import { logger, logOrderAction } from "../../lib/logger";
+import { logOrderAction } from "../../lib/logger";
 import {
   incrementPedidoCreado,
   incrementPedidoAsignado,
@@ -56,7 +56,7 @@ async function generarCodigoUnico(): Promise<string> {
 export class OrdersService {
   constructor(private readonly ordersRepository: OrdersRepository) {}
 
-  private async createOrderWithRetry(data: Parameters<OrdersRepository["create"]>[0]) {
+  private async createOrderWithRetry(data: Omit<Prisma.OrderCreateInput, "codigo">) {
     for (let attempt = 0; attempt < 3; attempt++) {
       const codigo = await generarCodigoUnico();
 
@@ -177,7 +177,7 @@ export class OrdersService {
     io.to("operators").emit("pedido:actualizado", orderDto);
     io.to(`driver:${driver.userId}`).emit("viaje:assigned", { viajeId: updatedOrder.id, pedido: orderDto });
 
-    logOrderAction(logger, "assignDriver", {
+    logOrderAction("assignDriver", {
       requestId: updatedOrder.id,
       userId: assignedByUserId,
       role: assignedByRole,
@@ -212,7 +212,7 @@ export class OrdersService {
     io.to("operators").emit("pedido:actualizado", orderDto);
     io.to(`driver:${driver.userId}`).emit("viaje:accepted", { viajeId: updatedOrder.id, pedido: orderDto });
 
-    logOrderAction(logger, "acceptOrder", {
+    logOrderAction("acceptOrder", {
       requestId: updatedOrder.id,
       userId: driver.userId,
       role: "DRIVER",
@@ -250,7 +250,7 @@ export class OrdersService {
     io.to("operators").emit("pedido:actualizado", orderDto);
     io.to(`driver:${driver.userId}`).emit("viaje:rejected", { viajeId: updatedOrder.id, pedido: orderDto, motivo: motivoRechazo });
 
-    logOrderAction(logger, "rejectOrder", {
+    logOrderAction("rejectOrder", {
       requestId: updatedOrder.id,
       userId: driver.userId,
       role: "DRIVER",
@@ -330,7 +330,7 @@ export class OrdersService {
     io.to("operators").emit("pedido:actualizado", orderDto);
     io.to(`driver:${driver.userId}`).emit("viaje:completed", { viajeId: updatedOrder.id, pedido: orderDto });
 
-    logOrderAction(logger, "finishOrder", {
+    logOrderAction("finishOrder", {
       requestId: updatedOrder.id,
       userId: driver.userId,
       role: "DRIVER",
@@ -367,7 +367,7 @@ export class OrdersService {
     const io = getIO();
     io.to("operators").emit("pedido:actualizado", orderDto);
 
-    logOrderAction(logger, "cancelOrder", {
+    logOrderAction("cancelOrder", {
       requestId: updatedOrder.id,
       userId,
       role: rolUsuario,
