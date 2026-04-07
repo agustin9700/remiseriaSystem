@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Container, Row, Col, Card, Button, Badge,
-  Alert, Form, Modal, ListGroup, Spinner
+  Alert, Form, Modal, ListGroup,
 } from 'react-bootstrap';
 import {
   FaMapMarkedAlt, FaCar, FaStop, FaCheck,
@@ -13,7 +13,7 @@ import axiosInstance from '../hooks/api/axiosInstance';
 import { getUserFromToken } from '../utils/auth';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Badge as UiBadge, Loader, PageHeader, Skeleton } from '../components/ui';
+import { Badge as UiBadge, PageHeader, Skeleton } from '../components/ui';
 
 // Fix de iconos por defecto de Leaflet con bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -413,7 +413,7 @@ const ConductorDashboard = () => {
             <Card.Body className="p-0" style={{ position: 'relative' }}>
               <div ref={mapRef} style={{ height: '380px', width: '100%' }} />
               {currentPosition && (
-                <div style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(255,255,255,0.95)', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', zIndex: 5, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+                <div className="conductor-map-coords-badge">
                   📍 {currentPosition.lat.toFixed(5)}, {currentPosition.lng.toFixed(5)}
                 </div>
               )}

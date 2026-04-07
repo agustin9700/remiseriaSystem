@@ -77,7 +77,7 @@ function App() {
           <Route
             path="/perfilChofer"
             element={
-              <ProtectedRoute allowedRoles={['ADMIN']}>
+              <ProtectedRoute allowedRoles={['DRIVER']}>
                 <AppShell>
                   <PerfilChofer />
                 </AppShell>

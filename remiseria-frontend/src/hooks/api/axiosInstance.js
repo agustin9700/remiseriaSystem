@@ -57,8 +57,17 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Sin sesión Bearer: no intentar refresh ni mostrar "sesión expirada" (evita falsos positivos en visitas sin login).
     if (originalRequest.url?.includes('/auth/refresh')) {
       redirectToLogin('expired');
+      return Promise.reject(error);
+    }
+
+    const authHeader = originalRequest.headers?.Authorization;
+    const hadBearerSession =
+      typeof authHeader === 'string' && authHeader.startsWith('Bearer ');
+
+    if (!hadBearerSession) {
       return Promise.reject(error);
     }
 

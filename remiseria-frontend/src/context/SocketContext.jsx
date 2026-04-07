@@ -13,8 +13,8 @@ async function tryRefreshToken() {
   try {
     const res = await axios.post(`${BASE_URL}/auth/refresh`, {}, { withCredentials: true });
     const accessToken = res.data?.accessToken || null;
-    setAccessToken(accessToken);
     if (accessToken) {
+      setAccessToken(accessToken);
       window.dispatchEvent(new Event('auth-changed'));
     }
     return accessToken;

@@ -65,9 +65,7 @@ body {
   position: sticky;
   top: 0;
   height: 100vh;
-  
-    z-index: 100;
-  
+  z-index: 40;
 }
 
 .app-shell-sidebar-collapsed {
@@ -991,7 +989,7 @@ body {
     position: fixed;
     height: 100vh;
     left: -260px;
-    z-index: 300;
+    z-index: 120;
     transition: left 0.2s ease;
   }
 
@@ -1021,7 +1019,23 @@ body {
   border: 0;
   padding: 0;
   margin: 0;
-  z-index: 250;
+  z-index: 100;
+  cursor: pointer;
+}
+
+/* Badge de coordenadas en panel conductor: por encima de capas Leaflet (10), sin competir con el drawer */
+.conductor-map-coords-badge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  max-width: calc(100% - 20px);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  z-index: 15;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
 }
 
 .ui-tabs {

@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Users,
   Car,
+  UserCircle,
   UserPlus,
   LogOut,
 } from 'lucide-react';
@@ -16,6 +17,7 @@ const navItems = [
   { to: '/pedidos', label: 'Pedidos', icon: ClipboardList, roles: ['ADMIN', 'OPERATOR'] },
   { to: '/choferes', label: 'Choferes', icon: Users, roles: ['ADMIN', 'OPERATOR'] },
   { to: '/chofer', label: 'Panel chofer', icon: Car, roles: ['DRIVER'] },
+  { to: '/perfilChofer', label: 'Mi perfil', icon: UserCircle, roles: ['DRIVER'] },
   { to: '/crear', label: 'Usuarios', icon: UserPlus, roles: ['ADMIN'] },
 ];
 
@@ -24,11 +26,21 @@ const AppShell = ({ children }) => {
   const [user, setUser] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isNarrowViewport, setIsNarrowViewport] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1024px)').matches
+  );
   const toggleButtonRef = useRef(null);
   const drawerRef = useRef(null);
   const hadMobileOpenRef = useRef(false);
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 1024;
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1024px)');
+    const onChange = () => setIsNarrowViewport(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  const isMobile = isNarrowViewport;
   const sidebarCollapsed = !isMobile && collapsed;
   const showFullSidebar = isMobile ? mobileOpen : !collapsed;
 
@@ -94,8 +106,7 @@ const AppShell = ({ children }) => {
   }, [mobileOpen]);
 
   useEffect(() => {
-    const isMobile = window.innerWidth <= 1024;
-    if (!isMobile || !mobileOpen) return;
+    if (!isNarrowViewport || !mobileOpen) return;
 
     const onKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -106,7 +117,7 @@ const AppShell = ({ children }) => {
     window.addEventListener('keydown', onKeyDown);
     drawerRef.current?.focus();
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [mobileOpen]);
+  }, [mobileOpen, isNarrowViewport]);
 
   useEffect(() => {
     if (hadMobileOpenRef.current && !mobileOpen) {
@@ -177,15 +188,6 @@ const AppShell = ({ children }) => {
         </div>
       </aside>
 
-      {mobileOpen && (
-        <button
-          type="button"
-          aria-label="Cerrar menu lateral"
-          className="app-shell-backdrop"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
       <div className="app-shell-main">
         <header className="app-shell-topbar">
           <button
@@ -196,10 +198,14 @@ const AppShell = ({ children }) => {
             aria-controls="app-shell-drawer"
             aria-expanded={mobileOpen}
             onClick={() => {
-              if (window.innerWidth <= 1024) {
-                setMobileOpen(v => !v);
+              if (isNarrowViewport) {
+                setMobileOpen((v) => {
+                  const next = !v;
+                  if (next) setCollapsed(false);
+                  return next;
+                });
               } else {
-                setCollapsed(v => !v);
+                setCollapsed((v) => !v);
               }
             }}
           >
@@ -210,6 +216,15 @@ const AppShell = ({ children }) => {
           {children}
         </main>
       </div>
+
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Cerrar menu lateral"
+          className="app-shell-backdrop"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
     </div>
   );
 };

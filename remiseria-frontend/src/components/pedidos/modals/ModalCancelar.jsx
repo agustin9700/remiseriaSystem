@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Form } from "react-bootstrap";
-import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle, useToast } from "../../ui";
+import { Button, Modal, ModalBody, ModalFooter, ModalHeader, ModalTitle } from "../../ui";
 
 export default function ModalCancelarPedido({ show, onHide, onConfirm }) {
-  const toast = useToast();
   const [motivo, setMotivo] = useState("");
   const [error, setError] = useState(null);
 

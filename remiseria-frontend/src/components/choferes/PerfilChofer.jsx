@@ -1,226 +1,186 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import axiosInstance from '../../hooks/api/axiosInstance';
-import { Badge, Button, Card, CardBody, Input, PageHeader, Select } from '../ui';
+import { Badge, Button, Card, CardBody, PageHeader } from '../ui';
 
+/**
+ * Perfil del conductor: usa el contrato real GET/PATCH /drivers/me*.
+ * Turno y edición de móvil no tienen equivalente en API → solo lectura / deshabilitado.
+ */
 const PerfilChofer = () => {
-  const [perfil, setPerfil] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [editTurno, setEditTurno] = useState(false);
-  const [nuevoTurno, setNuevoTurno] = useState('');
-  const [editMovil, setEditMovil] = useState(false);
-  const [movilForm, setMovilForm] = useState({
-    numero: '',
-    marca: '',
-    modelo: '',
-    patente: ''
-  });
+  const [driver, setDriver] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(false);
 
-  const obtenerPerfil = async () => {
-    try {
-      const res = await axiosInstance.get('/choferes/perfil');
-      setPerfil(res.data);
-      setNuevoTurno(res.data.turno);
-      setMovilForm({
-        numero: res.data.movilActual?.numero || '',
-        marca: res.data.movilActual?.marca || '',
-        modelo: res.data.movilActual?.modelo || '',
-        patente: res.data.movilActual?.patente || ''
-      });
-    } catch (err) {
-      console.error('Error al obtener perfil del chofer', err);
-    }
-  };
-
-  useEffect(() => {
-    obtenerPerfil();
-  }, []);
-
-  const toggleEstado = async () => {
-    if (!perfil) return;
-    const nuevoEstado = !perfil.activo;
+  const fetchPerfil = useCallback(async () => {
+    setError(null);
     setLoading(true);
-
     try {
-      await axiosInstance.put('/choferes/estado', { activo: nuevoEstado });
-      await obtenerPerfil();
+      const res = await axiosInstance.get('/drivers/me');
+      setDriver(res.data ?? null);
     } catch (err) {
-      console.error('Error al actualizar estado', err);
+      const msg =
+        err.response?.status === 403
+          ? 'No tenés permiso para ver este perfil.'
+          : err.response?.data?.message || err.message || 'No se pudo cargar el perfil.';
+      setError(msg);
+      setDriver(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const guardarNuevoTurno = async () => {
+  useEffect(() => {
+    fetchPerfil();
+  }, [fetchPerfil]);
+
+  const toggleEstadoOperativo = async () => {
+    if (!driver || statusLoading) return;
+    if (driver.estado === 'OCUPADO') return;
+
+    const siguiente = driver.estado === 'DISPONIBLE' ? 'OFFLINE' : 'DISPONIBLE';
+    setStatusLoading(true);
     try {
-      await axiosInstance.put('/choferes/turno', { turno: nuevoTurno });
-      setEditTurno(false);
-      await obtenerPerfil();
+      await axiosInstance.patch('/drivers/me/status', { estado: siguiente });
+      await fetchPerfil();
     } catch (err) {
-      console.error('Error al actualizar turno', err);
+      const msg = err.response?.data?.message || err.message || 'No se pudo actualizar el estado.';
+      setError(msg);
+    } finally {
+      setStatusLoading(false);
     }
   };
 
-  const guardarMovil = async () => {
-    try {
-      await axiosInstance.put('/choferes/movil', movilForm);
-      setEditMovil(false);
-      await obtenerPerfil();
-    } catch (err) {
-      console.error('Error al actualizar datos del móvil', err);
-    }
-  };
+  if (loading && !driver) {
+    return (
+      <div className="ui-page">
+        <div className="text-center mt-5 text-muted">Cargando perfil…</div>
+      </div>
+    );
+  }
 
-  const handleMovilChange = (e) => {
-  const { name, value } = e.target;
-  setMovilForm((prev) => ({
-    ...prev,
-    [name]: value
-  }));
-};
+  if (error && !driver) {
+    return (
+      <div className="ui-page">
+        <PageHeader title="Perfil del chofer" subtitle="Datos de tu cuenta como conductor." />
+        <Card>
+          <CardBody>
+            <p className="text-danger mb-3">{error}</p>
+            <Button type="button" onClick={() => fetchPerfil()}>
+              Reintentar
+            </Button>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
 
-  if (!perfil) return <div className="ui-page"><div className="text-center mt-5">Cargando perfil...</div></div>;
+  if (!driver?.user) {
+    return (
+      <div className="ui-page">
+        <PageHeader title="Perfil del chofer" subtitle="Datos de tu cuenta como conductor." />
+        <Card>
+          <CardBody>
+            <p className="text-muted mb-3">No hay datos de perfil para mostrar.</p>
+            <Button type="button" variant="secondary" onClick={() => fetchPerfil()}>
+              Reintentar
+            </Button>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
 
-  const { user, telefono, turno, licencia, activo, estado_operativo, movilActual } = perfil;
+  const u = driver.user;
+  const estadoLabel = {
+    DISPONIBLE: 'Disponible',
+    OFFLINE: 'Fuera de línea',
+    OCUPADO: 'Ocupado (en viaje)',
+  }[driver.estado] || driver.estado;
 
   return (
     <div className="ui-page">
-      <PageHeader title="Perfil del Chofer" subtitle="Gestion de estado, turno y movil asignado." />
+      <PageHeader title="Perfil del chofer" subtitle="Estado operativo y datos registrados por la remisería." />
+
+      {error && (
+        <div
+          className="mb-3 p-2 rounded small"
+          style={{ background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e' }}
+          role="status"
+        >
+          {error}
+        </div>
+      )}
+
       <Card>
         <CardBody>
-        <h4 className="ui-form-section-title">Datos personales</h4>
-        <p><strong>Nombre:</strong> {user.nombre} {user.apellido}</p>
-        <p><strong>Usuario:</strong> {user.usuario}</p>
-        <p><strong>Rol:</strong> {user.role}</p>
+          <h4 className="ui-form-section-title">Datos personales</h4>
+          <p>
+            <strong>Nombre:</strong> {u.nombre} {u.apellido}
+          </p>
+          <p>
+            <strong>Teléfono:</strong> {u.telefono || '—'}
+          </p>
+          <p>
+            <strong>Rol:</strong> {u.rol}
+          </p>
+          <p>
+            <strong>Cuenta activa:</strong>{' '}
+            <Badge tone={u.activo ? 'success' : 'danger'}>{u.activo ? 'Sí' : 'No'}</Badge>
+          </p>
 
-        <hr />
+          <hr />
 
-        <h4 className="ui-form-section-title">Datos como chofer</h4>
-        <p><strong>Teléfono:</strong> {telefono}</p>
+          <h4 className="ui-form-section-title">Conductor</h4>
+          <p>
+            <strong>Licencia:</strong> {driver.licenciaNumero || '—'}
+          </p>
+          <p>
+            <strong>Estado operativo:</strong> {estadoLabel}
+          </p>
 
-        <p><strong>Turno:</strong>{' '}
-          {editTurno ? (
-            <>
-              <Select
-                className="w-auto d-inline-block"
-                value={nuevoTurno}
-                onChange={(e) => setNuevoTurno(e.target.value)}
-              >
-                <option value="mañana">Mañana</option>
-                <option value="tarde">Tarde</option>
-                <option value="noche">Noche</option>
-              </Select>
-              <Button size="sm" onClick={guardarNuevoTurno} className="ms-2">
-                Guardar
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => setEditTurno(false)} className="ms-2">
-                Cancelar
-              </Button>
-            </>
-          ) : (
-            <>
-              <span className="ms-1">{turno}</span>
-              <Button size="sm" variant="secondary" onClick={() => setEditTurno(true)} className="ms-3">
-                Editar
-              </Button>
-            </>
-          )}
-        </p>
+          <p className="text-muted small mb-2">
+            Turnos por API no están disponibles; la disponibilidad se gestiona con el estado operativo (como en el panel
+            del conductor).
+          </p>
 
-        <p><strong>Licencia:</strong> {licencia}</p>
+          <Button
+            type="button"
+            onClick={toggleEstadoOperativo}
+            variant={driver.estado === 'DISPONIBLE' ? 'secondary' : 'primary'}
+            className="mt-1"
+            disabled={statusLoading || driver.estado === 'OCUPADO'}
+          >
+            {statusLoading
+              ? 'Actualizando…'
+              : driver.estado === 'OCUPADO'
+                ? 'No podés cambiar estado durante un viaje'
+                : driver.estado === 'DISPONIBLE'
+                  ? 'Pasar a fuera de línea'
+                  : 'Pasar a disponible'}
+          </Button>
 
-        <p>
-          <strong>Activo:</strong>{' '}
-          <Badge tone={activo ? 'success' : 'danger'} className="ms-2">{activo ? 'Sí' : 'No'}</Badge>
-        </p>
-        <p><strong>Estado operativo:</strong> {estado_operativo}</p>
+          <hr />
 
-        <Button
-          onClick={toggleEstado}
-          variant={activo ? 'secondary' : 'primary'}
-          className="mt-3"
-          disabled={loading}
-        >
-          {loading
-            ? 'Cambiando estado...'
-            : activo
-              ? 'Finalizar turno'
-              : 'Iniciar turno'}
-        </Button>
+          <h4 className="ui-form-section-title">Vehículo registrado</h4>
+          <p className="text-muted small">
+            Los cambios de vehículo los realiza un administrador; acá solo se muestran los datos actuales.
+          </p>
+          <p>
+            <strong>Marca / modelo:</strong> {[driver.vehiculoMarca, driver.vehiculoModelo].filter(Boolean).join(' ') || '—'}
+          </p>
+          <p>
+            <strong>Color:</strong> {driver.vehiculoColor || '—'}
+          </p>
+          <p>
+            <strong>Patente:</strong> {driver.patente || '—'}
+          </p>
 
-        {movilActual && (
-  <>
-    <hr />
-    <h4 className="ui-form-section-title">Móvil asignado</h4>
-
-    {editMovil ? (
-      <>
-        <div className="row">
-          <div className="col-md-6 mb-2">
-            <label><strong>Número</strong></label>
-            <Input
-              type="text"
-              name="numero"
-              className="form-control"
-              value={movilForm.numero}
-              onChange={handleMovilChange}
-            />
+          <div className="mt-3">
+            <Button type="button" variant="secondary" size="sm" onClick={() => fetchPerfil()} disabled={loading}>
+              Actualizar datos
+            </Button>
           </div>
-          <div className="col-md-6 mb-2">
-            <label><strong>Marca</strong></label>
-            <Input
-              type="text"
-              name="marca"
-              className="form-control"
-              value={movilForm.marca}
-              onChange={handleMovilChange}
-            />
-          </div>
-          <div className="col-md-6 mb-2">
-            <label><strong>Modelo</strong></label>
-            <Input
-              type="text"
-              name="modelo"
-              className="form-control"
-              value={movilForm.modelo}
-              onChange={handleMovilChange}
-            />
-          </div>
-          <div className="col-md-6 mb-2">
-            <label><strong>Patente</strong></label>
-            <Input
-              type="text"
-              name="patente"
-              className="form-control"
-              value={movilForm.patente}
-              onChange={handleMovilChange}
-            />
-          </div>
-        </div>
-        <Button className="mt-2 me-2" onClick={guardarMovil}>
-          Guardar
-        </Button>
-        <Button variant="secondary" className="mt-2" onClick={() => setEditMovil(false)}>
-          Cancelar
-        </Button>
-      </>
-    ) : (
-      <>
-        <p><strong>Número:</strong> {movilActual.numero}</p>
-        <p><strong>Marca:</strong> {movilActual.marca}</p>
-        <p><strong>Modelo:</strong> {movilActual.modelo}</p>
-        <p><strong>Patente:</strong> {movilActual.patente}</p>
-        <Button
-          size="sm"
-          variant="secondary"
-          className="mt-2"
-          onClick={() => setEditMovil(true)}
-        >
-          Editar datos del móvil
-        </Button>
-      </>
-    )}
-  </>
-)}
         </CardBody>
       </Card>
     </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import axiosInstance from './api/axiosInstance';
 
 
@@ -109,7 +109,9 @@ export const useConductor = () => {
       try {
         const { data: history } = await axiosInstance.get('/drivers/me/history?limit=10');
         setHistorial(normalizeListResponse(history));
-      } catch {}
+      } catch {
+        void 0;
+      }
 
       setViajeActivo(null);
       setMiEstado('DISPONIBLE');
@@ -132,7 +134,9 @@ export const useConductor = () => {
       try {
         const { data: history } = await axiosInstance.get('/drivers/me/history?limit=10');
         setHistorial(normalizeListResponse(history));
-      } catch {}
+      } catch {
+        void 0;
+      }
 
       setViajeActivo(null);
       setMiEstado('DISPONIBLE');
