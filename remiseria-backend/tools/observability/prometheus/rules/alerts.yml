@@ -1,0 +1,57 @@
+groups:
+  - name: remiseria-alerts
+    interval: 30s
+    rules:
+      # Alta latencia
+      - alert: HighLatency
+        expr: >-
+          remiseria_duracion_asignacion_p95 > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta latencia detectada en API"
+          description: "p95 latency es {{ $value }}ms (umbral: 1000ms)"
+
+      # Latencia crítica
+      - alert: CriticalLatency
+        expr: >-
+          remiseria_duracion_asignacion_p99 > 2000
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Latencia crítica"
+          description: "p99 latency es {{ $value }}ms"
+
+      # Muchos conflictos
+      - alert: HighConflicts
+        expr: >-
+          (remiseria_conflictos_total{dobleAsignacion="true"} + remiseria_conflictos_total{aceptacionTardia="true"} + remiseria_conflictos_total{cancelVsAceptacion="true"}) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alta tasa de conflictos"
+          description: "{{ $value }} conflictos detectados"
+
+      # Caída de pedidos completados - ALERT DESHABILITADA (no hay rate en gauges)
+      # - alert: DropInCompletedOrders
+      #   expr: rate(remiseria_pedidos_completados_total[5m]) < 0.1
+      #   for: 5m
+      #   labels:
+      #     severity: warning
+      #   annotations:
+      #     summary: "Caída en pedidos completados"
+      #     description: "Tasa de completados muy baja"
+
+      # Alta tasa de idempotencia (puede indicar problema)
+      - alert: HighIdempotencyRate
+        expr: >-
+          (remiseria_acciones_idempotentes_total > 50)
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Alta tasa de acciones idempotentes"
+          description: "{{ $value }} acciones idempotentes detectadas"

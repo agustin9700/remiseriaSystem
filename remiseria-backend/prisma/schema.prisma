@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RolUsuario {
+  ADMIN
+  OPERATOR
+  DRIVER
+}
+
+enum EstadoChofer {
+  DISPONIBLE
+  OCUPADO
+  OFFLINE
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  ASIGNADO
+  ACEPTADO
+  RECHAZADO
+  EN_CAMINO
+  EN_VIAJE
+  COMPLETADO
+  CANCELADO
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TRANSFERENCIA
+  TARJETA
+}
+
+model User {
+  id String @id @default(cuid())
+  nombre       String
+  apellido     String
+  telefono     String     @unique
+  email        String?    @unique
+  passwordHash String
+  rol          RolUsuario
+  activo       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  driver        Driver?
+  refreshTokens RefreshToken[]
+
+  createdOrders   Order[]          @relation("OrderCreatedBy")
+  cancelledOrders Order[]          @relation("OrderCancelledBy")
+  statusLogs      OrderStatusLog[]
+}
+
+model Driver {
+  id                  String       @id @default(cuid())
+  userId              String       @unique
+  estado              EstadoChofer @default(DISPONIBLE)
+  vehiculoMarca       String?
+  vehiculoModelo      String?
+  vehiculoColor       String?
+  patente             String?
+  licenciaNumero      String?
+  licenciaVencimiento DateTime?
+  latitud             Float?
+  longitud            Float?
+  ultimaUbicacionAt   DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id])
+  orders    Order[]
+  locations DriverLocation[]
+}
+
+model Order {
+  id                  String       @id @default(cuid())
+  codigo              String       @unique
+  nombreCliente       String
+  telefonoCliente     String
+  origenTexto         String
+  origenLat           Float?
+  origenLng           Float?
+  destinoTexto        String?
+  destinoLat          Float?
+  destinoLng          Float?
+  estado              EstadoPedido @default(PENDIENTE)
+  montoEstimado       Decimal?     @db.Decimal(10, 2)
+  montoFinal          Decimal?     @db.Decimal(10, 2)
+  metodoPago          MetodoPago?
+  distanciaMetros     Int?
+  duracionEstimadaMin Int?
+  observaciones       String?
+  motivoRechazo       String?
+  motivoCancelacion   String?
+  choferId            String?
+  creadoPorUserId     String?
+  canceladoPorUserId  String?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  asignadoAt   DateTime?
+  aceptadoAt   DateTime?
+  enCaminoAt   DateTime?
+  iniciadoAt   DateTime?
+  completadoAt DateTime?
+  canceladoAt  DateTime?
+
+  chofer       Driver? @relation(fields: [choferId], references: [id], onDelete: SetNull)
+  creadoPor    User?   @relation("OrderCreatedBy", fields: [creadoPorUserId], references: [id], onDelete: Restrict)
+  canceladoPor User?   @relation("OrderCancelledBy", fields: [canceladoPorUserId], references: [id], onDelete: SetNull)
+
+  statusLogs OrderStatusLog[]
+
+  @@index([estado])
+  @@index([choferId])
+  @@index([telefonoCliente])
+  @@index([createdAt])
+}
+
+model OrderStatusLog {
+  id             String        @id @default(cuid())
+  orderId        String
+  estadoAnterior EstadoPedido?
+  estadoNuevo    EstadoPedido
+  userId         String
+  rolUsuario     RolUsuario
+  nota           String?
+  createdAt      DateTime      @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model FareSetting {
+  id                 String   @id @default(cuid())
+  nombre             String
+  tarifaBase         Decimal  @db.Decimal(10, 2)
+  valorPorKm         Decimal  @db.Decimal(10, 2)
+  valorPorMinuto     Decimal  @db.Decimal(10, 2)
+  recargoNocturnoPct Decimal? @db.Decimal(5, 2)
+  recargoLluviaPct   Decimal? @db.Decimal(5, 2)
+  activo             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model DriverLocation {
+  id         String   @id @default(cuid())
+  driverId   String
+  lat        Float
+  lng        Float
+  speedKmh   Float?
+  heading    Float?
+  recordedAt DateTime @default(now())
+
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId])
+  @@index([recordedAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+}
