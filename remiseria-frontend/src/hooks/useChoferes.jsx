@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import axiosInstance from './api/axiosInstance';
 
 const useChoferes = () => {
@@ -9,7 +9,7 @@ const useChoferes = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchChoferes = async () => {
+  const fetchChoferes = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axiosInstance.get('/drivers');
@@ -34,7 +34,7 @@ const useChoferes = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return {
     choferes,

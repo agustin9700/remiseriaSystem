@@ -26,12 +26,34 @@ export class UsersRepository {
   async create(data: CreateUserData) {
     return prisma.user.create({
       data,
+      select: {
+        id: true,
+        nombre: true,
+        apellido: true,
+        telefono: true,
+        email: true,
+        rol: true,
+        activo: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 
   async list() {
     return prisma.user.findMany({
       orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        nombre: true,
+        apellido: true,
+        telefono: true,
+        email: true,
+        rol: true,
+        activo: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 }

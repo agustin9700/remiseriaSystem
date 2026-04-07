@@ -115,8 +115,12 @@ export class OrdersService {
     return orderDto;
   }
 
-  async listOrders(params?: { page?: number; limit?: number; estado?: string }) {
-    const result = await this.ordersRepository.list(params);
+  async listOrders(
+    params?: { page?: number; limit?: number; estado?: string },
+    authUser?: { userId: string; rol: string }
+  ) {
+    const driverUserId = authUser?.rol === "DRIVER" ? authUser.userId : undefined;
+    const result = await this.ordersRepository.list({ ...params, driverUserId });
     return {
       ...result,
       orders: result.orders.map(toOrderDto),
@@ -420,13 +424,20 @@ export class OrdersService {
       id: trip.id,
       codigo: trip.codigo,
       estado: trip.estado,
+      choferId: trip.chofer?.id ?? null,
       cliente: {
         nombre: trip.nombreCliente,
         telefono: trip.telefonoCliente,
       },
+      // Alineado con toOrderDto (viaje.*) y con conductorDashboard / useLeafletMap (origenLat vía pedido.viaje)
       viaje: {
         origen: trip.origenTexto,
+        origenLat: trip.origenLat,
+        origenLng: trip.origenLng,
         destino: trip.destinoTexto,
+        destinoLat: trip.destinoLat,
+        destinoLng: trip.destinoLng,
+        observaciones: trip.observaciones,
       },
       chofer: trip.chofer
         ? {
@@ -434,6 +445,7 @@ export class OrdersService {
             nombre: trip.chofer.user?.nombre ?? null,
             apellido: trip.chofer.user?.apellido ?? null,
             telefono: trip.chofer.user?.telefono ?? null,
+            licenciaNumero: trip.chofer.licenciaNumero,
             vehiculoMarca: trip.chofer.vehiculoMarca,
             vehiculoModelo: trip.chofer.vehiculoModelo,
             patente: trip.chofer.patente,

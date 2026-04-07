@@ -6,6 +6,8 @@ import rateLimit from "@fastify/rate-limit";
 import crypto from "crypto";
 import { z } from "zod";
 import { env } from "./lib/env";
+import { prisma } from "./lib/prisma";
+import { getMetrics, getPrometheusMetrics } from "./lib/metrics";
 import { usersRoutes } from "./modules/users/users.routes";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { ordersRoutes } from "./modules/orders/orders.routes";
@@ -95,8 +97,18 @@ export const buildApp = async () => {
 
   app.get("/health", async () => ({ status: "ok" }));
 
+  app.get("/health/live", async () => ({ status: "ok" }));
+
+  app.get("/health/ready", async (_request, reply) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return { status: "ready" };
+    } catch {
+      return reply.status(503).send({ status: "not_ready" });
+    }
+  });
+
   // Métricas del sistema
-  const { getMetrics, getPrometheusMetrics } = require("./lib/metrics");
   app.get("/metrics", { preHandler: metricsAccess }, async (_request, reply) => {
     reply.header("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
     return getPrometheusMetrics();

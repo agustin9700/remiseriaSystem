@@ -126,12 +126,16 @@ const ViajeForm = () => {
         mapInstance.current.off('click', handleMapClickListener);
       }
     };
+  // Listener usa handleMapClick definido más abajo; ampliar deps reinicia el mapa innecesariamente.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seleccionando]);
 
   useEffect(() => {
     if (origenCoords && destinoCoords && window.L && mapInstance.current) {
       calcularRuta();
     }
+  // calcularRuta depende de refs y estado interno del mapa; coords bastan para disparar el cálculo.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [origenCoords, destinoCoords]);
 
   const calcularRuta = async () => {

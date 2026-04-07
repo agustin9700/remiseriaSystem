@@ -33,6 +33,8 @@ const ViajeTracking = () => {
 
     const interval = setInterval(fetchPedido, 5000);
     return () => clearInterval(interval);
+  // Poll acoplado a codigo y estado; incluir fetchPedido/pedido completo re-dispararía en cada render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [codigo, pedido?.estado]);
 
   const renderEstado = () => {

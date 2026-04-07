@@ -30,4 +30,14 @@ export default [
       ],
     },
   },
+  {
+    files: [
+      '**/components/ui/Toast.jsx',
+      '**/context/SocketContext.jsx',
+    ],
+    rules: {
+      // Hooks exportados junto al provider; dividir en otro archivo sería refactor innecesario.
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ]

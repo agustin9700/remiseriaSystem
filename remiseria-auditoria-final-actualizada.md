@@ -436,14 +436,13 @@ Driver ──────────────► DriverLocation (histórico 
 | Prioridad | Hallazgo | Estado |
 |---|---|---|
 | ~~🔴 Alta~~ | ~~`GET /users` expone `passwordHash`~~ | ✅ `userPublicSelect` |
-| ~~🔴 Alta~~ | ~~`/metrics` sin auth~~ | ✅ Fix aplicado — guard `metricsAccess` implementado |
+| ~~🔴 Alta~~ | ~~`/metrics` sin auth~~ | ✅ guard `metricsAccess` |
 | ~~🔴 Alta~~ | ~~DRIVER ve pedidos ajenos~~ | ✅ filtro ownership |
 | ~~🔴 Alta~~ | ~~DRIVER lista todos los choferes~~ | ✅ `authorize(["ADMIN","OPERATOR"])` |
-| ~~🔴 Alta~~ | ~~Rate limit fijo hardcodeado~~ | ✅ Fix aplicado — usa `RATE_LIMIT_AUTH_MAX` de env |
+| ~~🔴 Alta~~ | ~~Rate limit fijo hardcodeado~~ | ✅ configurable por env (`RATE_LIMIT_*`) |
 | ~~🔴 Alta~~ | ~~Sin cabeceras de seguridad HTTP~~ | ✅ `@fastify/helmet` |
 | ~~🔴 Alta~~ | ~~Inputs sin sanitizar (control chars, longitudes)~~ | ✅ `lib/sanitize.ts` + schemas Zod |
 | ~~🔴 Alta~~ | ~~Headers auth/cookie en logs~~ | ✅ redactados en `logger-config.ts` |
-| ~~🔴 Crítico~~ | ~~Cookie SameSite/Secure dinámica rompe sesión en HTTP~~ | ✅ Fix aplicado — `NODE_ENV` controla Secure/SameSite |
 | 🟡 Media | CORS `credentials: true` — depende de `CORS_ORIGINS` en deploy | Abierto |
 | 🟡 Media | Helmet: revisar si clientes usan iframes o scripts inusuales (CSP desactivada) | Abierto |
 | 🟢 Baja | Jobs limpian tokens expirados/revocados | OK |
@@ -578,9 +577,6 @@ GET /health/ready
 | ~~7~~ | ~~Sin cabeceras de seguridad HTTP~~ ✅ |
 | ~~8~~ | ~~Inputs sin sanitizar~~ ✅ |
 | ~~9~~ | ~~Headers sensibles en logs~~ ✅ |
-| ~~10~~ | ~~Cookie SameSite/Secure dinámica — sesión expira en HTTP~~ ✅ |
-| ~~11~~ | ~~`/metrics` sin guard de autenticación~~ ✅ |
-| ~~12~~ | ~~Rate limit de login hardcodeado, ignoraba `RATE_LIMIT_AUTH_MAX`~~ ✅ |
 
 ### Deuda y riesgos pendientes
 
@@ -741,12 +737,39 @@ curl http://localhost:3000/health/ready
 - Logs en conexión de sockets
 - Tests de integración críticos
 
----
 
-## 18. Historial de Fixes Post-Auditoría
 
-| # | Fecha | Bug | Archivo | Estado |
-|---|---|---|---|---|
-| 1 | 2026-04-06 | Cookie SameSite/Secure dinámica | auth.controller.ts | ✅ |
-| 2 | 2026-04-06 | /metrics sin autenticación | app.ts | ✅ |
-| 3 | 2026-04-06 | Rate limit hardcodeado en login | auth.routes.ts | ✅ |
+## 18. Testing e Integración (Actualizado)
+
+Estado actual:
+- 30 tests pasando
+- Backend validado con Vitest + Socket.IO real
+- Build y TypeScript OK
+
+Incluye:
+- Suite HTTP (fastify.inject)
+- Suite realtime (socket.io-client real)
+- Validación de seguridad y métricas
+
+Comandos:
+cd remiseria-backend
+npm run test
+npm run test:watch
+
+Variables necesarias:
+DATABASE_URL
+JWT_SECRET
+JWT_REFRESH_SECRET
+METRICS_TOKEN
+
+Cobertura:
+- Auth
+- Seguridad
+- Orders (flujo completo)
+- Socket.IO realtime
+- Metrics protegidas
+
+Pendiente:
+- Eventos: nuevo_pedido, viaje:cancelled, viaje:unassigned
+- Aislamiento DB de tests
+- CI/CD

@@ -52,7 +52,8 @@ export class OrdersController {
     if (!parsed.success) return reply.status(400).send({ message: "Datos invÃ¡lidos", errors: parsed.error.issues });
 
     try {
-      const result = await ordersService.listOrders(parsed.data);
+      const authUser = request.user as { userId: string; rol: string };
+      const result = await ordersService.listOrders(parsed.data, authUser);
       return reply.send(result);
     } catch (error) {
       const { statusCode, message } = handleError(error);
@@ -75,7 +76,7 @@ export class OrdersController {
     }
   }
 
-  // FIX: los controllers ya no tocan prisma directamente â€” el service resuelve el driver
+  // FIX: los controllers ya no tocan prisma directamente âÿÿ el service resuelve el driver
   async accept(request: FastifyRequest, reply: FastifyReply) {
     try {
       const { id } = request.params as { id: string };

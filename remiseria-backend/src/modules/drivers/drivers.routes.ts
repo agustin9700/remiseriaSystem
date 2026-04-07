@@ -16,7 +16,7 @@ export async function driversRoutes(app: FastifyInstance) {
   app.get(
     "/drivers",
     {
-      preHandler: [authenticate],
+      preHandler: [authenticate, authorize(["ADMIN", "OPERATOR"])],
     },
     driversController.list.bind(driversController)
   );

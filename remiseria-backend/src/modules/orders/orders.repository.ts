@@ -37,13 +37,16 @@ export class OrdersRepository {
     return prisma.order.create({ data, include: orderWithDriverInclude });
   }
 
-  async list(params?: { page?: number; limit?: number; estado?: string }) {
+  async list(params?: { page?: number; limit?: number; estado?: string; driverUserId?: string }) {
     const page = Math.max(1, params?.page ?? 1);
     const limit = Math.min(Math.max(1, params?.limit ?? 50), 200);
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {};
-    if (params?.estado) where.estado = params.estado;
+    const where: Prisma.OrderWhereInput = {};
+    if (params?.estado) where.estado = params.estado as EstadoPedido;
+    if (params?.driverUserId) {
+      where.chofer = { userId: params.driverUserId };
+    }
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({

@@ -22,7 +22,7 @@ const ChoferesPage = () => {
 
   useEffect(() => {
     fetchChoferes();
-  }, []);
+  }, [fetchChoferes]);
 
   const getChoferesArray = () => {
     if (Array.isArray(choferes)) return choferes;

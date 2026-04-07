@@ -44,7 +44,9 @@ export const useConductor = () => {
       const activeTrips = normalizeListResponse(activeTripsResponse);
 
       const pedidoActivo = activeTrips.find(
-        o => o.chofer?.id === driver.id && ESTADOS_ACTIVOS.includes(o.estado)
+        (o) =>
+          ESTADOS_ACTIVOS.includes(o.estado) &&
+          (String(o.chofer?.id) === String(driver.id) || String(o.choferId) === String(driver.id))
       );
 
       if (pedidoActivo) {

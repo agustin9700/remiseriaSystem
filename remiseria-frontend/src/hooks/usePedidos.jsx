@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import axiosInstance from './api/axiosInstance';
-import { useNavigate } from 'react-router-dom';
 
 const normalizeOrdersPayload = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.orders)) return payload.orders;
   if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.trips)) return payload.trips;
   if (Array.isArray(payload?.data)) return payload.data;
   return [];
 };
@@ -23,7 +23,6 @@ export const usePedidos = () => {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
   const mapMetodoPago = (metodo) => {
     const metodoPagoMap = {
